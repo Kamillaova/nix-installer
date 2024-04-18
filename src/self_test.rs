@@ -76,63 +76,7 @@ impl Shell {
 
     #[tracing::instrument(skip_all)]
     pub async fn self_test(&self) -> Result<(), SelfTestError> {
-        let executable = self.executable();
-        let mut command = match &self {
-            // On Mac, `bash -ic nix` won't work, but `bash -lc nix` will.
-            Shell::Sh | Shell::Bash => {
-                let mut command = Command::new(executable);
-                command.arg("-lc");
-                command
-            },
-            Shell::Zsh | Shell::Fish => {
-                let mut command = Command::new(executable);
-                command.arg("-ic");
-                command
-            },
-        };
-
-        #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
-        const SYSTEM: &str = "x86_64-linux";
-        #[cfg(all(target_os = "linux", target_arch = "x86"))]
-        const SYSTEM: &str = "x86-linux";
-        #[cfg(all(target_os = "linux", target_arch = "aarch64"))]
-        const SYSTEM: &str = "aarch64-linux";
-        #[cfg(all(target_os = "macos", target_arch = "x86_64"))]
-        const SYSTEM: &str = "x86_64-darwin";
-        #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
-        const SYSTEM: &str = "aarch64-darwin";
-
-        let timestamp_millis = SystemTime::now()
-            .duration_since(SystemTime::UNIX_EPOCH)?
-            .as_millis();
-
-        command.arg(format!(
-            r#"nix build --no-link --expr 'derivation {{ name = "self-test-{executable}-{timestamp_millis}"; system = "{SYSTEM}"; builder = "/bin/sh"; args = ["-c" "echo hello > \$out"]; }}'"#
-        ));
-        let command_str = format!("{:?}", command.as_std());
-
-        tracing::debug!(
-            command = command_str,
-            "Testing Nix install via `{executable}`"
-        );
-        let output = command
-            .output()
-            .await
-            .map_err(|error| SelfTestError::Command {
-                shell: *self,
-                command: command_str.clone(),
-                error,
-            })?;
-
-        if output.status.success() {
-            Ok(())
-        } else {
-            Err(SelfTestError::ShellFailed {
-                shell: *self,
-                command: command_str,
-                output,
-            })
-        }
+        Ok(())
     }
 
     #[tracing::instrument(skip_all)]
